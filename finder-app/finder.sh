@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 #finder shell script
 echo "Initializing finder..."
 if [ -z "$1" ]; then
