@@ -1,0 +1,5 @@
+Initializing finder...
+Selected Path: /tmp/aeld-data
+String to find: AELD_IS_FUN
+Checking if path exists
+The number of files are 10 and the number of matching lines are 10
