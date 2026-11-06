@@ -8,7 +8,6 @@
  *
  */
 
-#include <stdint.h>
 #ifdef __KERNEL__
 #include <linux/string.h>
 #else
@@ -33,28 +32,11 @@ struct aesd_buffer_entry *aesd_circular_buffer_find_entry_offset_for_fpos(struct
     /**
     * TODO: implement per description
     */
-    int i = 0;
-    uint8_t tail = buffer->out_offs;
-    uint8_t offres = char_offset;
-    if(!buffer->full && (buffer->out_offs == buffer->in_offs)){
-        return NULL;
-    } else{
-        for(i = 0 ; i < AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED ; i++){
-            if(offres < buffer->entry[tail].size){
-                *entry_offset_byte_rtn = offres;
-                return &(buffer->entry[tail]);
-           }
-            else {               
-               offres = offres - buffer->entry[tail].size;
-               tail = (tail + 1) % AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED; 
-            }
-        }
-    }
     return NULL;
 }
 
 /**
-* Ad:ds entry @param add_entry to @param buffer in the location specified in buffer->in_offs.
+* Adds entry @param add_entry to @param buffer in the location specified in buffer->in_offs.
 * If the buffer was already full, overwrites the oldest entry and advances buffer->out_offs to the
 * new start location.
 * Any necessary locking must be handled by the caller
@@ -65,20 +47,7 @@ void aesd_circular_buffer_add_entry(struct aesd_circular_buffer *buffer, const s
     /**
     * TODO: implement per description
     */
-    if(buffer->full){
-        buffer->out_offs = (buffer->out_offs +1) % AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED;
-        buffer->entry[buffer->in_offs] = *add_entry;
-        buffer->in_offs = (buffer->in_offs + 1) % AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED;
-    }
-    else {
-        buffer->entry[buffer->in_offs] = *add_entry;
-        buffer->in_offs = (buffer->in_offs + 1) % AESDCHAR_MAX_WRITE_OPERATIONS_SUPPORTED;
-        if(buffer->in_offs == buffer->out_offs)
-            buffer->full = true;
-    }
 }
-    
-
 
 /**
 * Initializes the circular buffer described by @param buffer to an empty struct
