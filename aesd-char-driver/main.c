@@ -21,6 +21,7 @@
 #include <linux/slab.h>
 #include <linux/mutex.h>
 #include <linux/uaccess.h>
+#include <linux/version.h> // LINUX_VERSION_CODE para el guard de class_create
 #include "aesdchar.h"
 int aesd_major =   0; // use dynamic major
 int aesd_minor =   0;
@@ -174,8 +175,13 @@ static int aesd_init_module(void)
     }
 
     /* Crear /dev/aesdchar vía devtmpfs/udev: sin class_create el nodo
-     * no existe en sistemas donde nadie hace mknod (p.ej. Yocto). */
+     * no existe en sistemas donde nadie hace mknod (p.ej. Yocto).
+     * La firma de class_create cambió en el kernel 6.4. */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,4,0)
     aesd_class = class_create("aesdchar");
+#else
+    aesd_class = class_create(THIS_MODULE, "aesdchar");
+#endif
     if (IS_ERR(aesd_class)) {
         result = PTR_ERR(aesd_class);
         printk(KERN_ERR "Error %d creating aesd class\n", result);
