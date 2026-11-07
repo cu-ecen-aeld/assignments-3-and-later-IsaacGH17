@@ -25,6 +25,8 @@
 int aesd_major =   0; // use dynamic major
 int aesd_minor =   0;
 
+static struct class *aesd_class = NULL;
+
 MODULE_AUTHOR("IsaacGH"); /** TODO: fill in your name **/
 MODULE_DESCRIPTION("AESD char driver");
 MODULE_LICENSE("Dual BSD/GPL");
@@ -166,11 +168,24 @@ static int aesd_init_module(void)
     aesd_circular_buffer_init(&aesd_device.buffer);
     result = aesd_setup_cdev(&aesd_device);
 
-    if( result ) {
+    if (result) {
         unregister_chrdev_region(dev, 1);
+        return result;
     }
-    return result;
 
+    /* Crear /dev/aesdchar vía devtmpfs/udev: sin class_create el nodo
+     * no existe en sistemas donde nadie hace mknod (p.ej. Yocto). */
+    aesd_class = class_create("aesdchar");
+    if (IS_ERR(aesd_class)) {
+        result = PTR_ERR(aesd_class);
+        printk(KERN_ERR "Error %d creating aesd class\n", result);
+        cdev_del(&aesd_device.cdev);
+        unregister_chrdev_region(dev, 1);
+        return result;
+    }
+    device_create(aesd_class, NULL, dev, NULL, "aesdchar");
+
+    return result;
 }
 
 static void aesd_cleanup_module(void)
@@ -178,6 +193,11 @@ static void aesd_cleanup_module(void)
    dev_t devno = MKDEV(aesd_major, aesd_minor);
     struct aesd_buffer_entry *entry = NULL;
     uint8_t index = 0;
+    if (aesd_class) {
+        device_destroy(aesd_class, devno);
+        class_destroy(aesd_class);
+        aesd_class = NULL;
+    }
     cdev_del(&aesd_device.cdev);
     AESD_CIRCULAR_BUFFER_FOREACH(entry, &aesd_device.buffer, index) {
         if (entry->buffptr != NULL) {
