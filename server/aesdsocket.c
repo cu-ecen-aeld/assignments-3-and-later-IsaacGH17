@@ -10,7 +10,6 @@
 #include <netdb.h>
 #include <fcntl.h>
 #include <signal.h>
-
 volatile sig_atomic_t caught_signal = 0;
 
 void signal_handler(int signal_number) {
@@ -26,19 +25,13 @@ void *get_in_addr(struct sockaddr *sa) {
     return &(((struct sockaddr_in6*)sa)->sin6_addr);
 }
 void handle_connection(int client_fd) {
-    int fd;
+    int fd = -1;
     char recv_buf[MAXDATASIZE];
     char *packet_buf = NULL;
     size_t packet_size = 0;
     ssize_t bytes_received;
     char *newline_ptr = NULL;
-    fd = open(PATHFILE, O_WRONLY | O_CREAT | O_APPEND, 0644);
-    if (fd < 0) {
-        perror("Couldn't open file");
-        close(client_fd);
-        return;
-    }
-    while ((bytes_received = recv(client_fd, recv_buf, sizeof(recv_buf), 0)) > 0) {
+       while ((bytes_received = recv(client_fd, recv_buf, sizeof(recv_buf), 0)) > 0) {
         char *new_buf = realloc(packet_buf, packet_size + bytes_received);
         if (!new_buf) {
             perror("Failed to allocate memory");
@@ -67,6 +60,13 @@ void handle_connection(int client_fd) {
         close(client_fd);
         return;
     }
+     fd = open(DATA_FILE, O_WRONLY | O_CREAT | O_APPEND, 0644);
+        if (fd < 0) {
+            perror("Couldn't open file");
+            close(client_fd);
+            return;
+        }
+
     size_t len = (newline_ptr != NULL) ? (size_t)(newline_ptr - packet_buf) + 1
                                        : packet_size;
     ssize_t bytes_written = write(fd, packet_buf, len);
@@ -78,7 +78,7 @@ void handle_connection(int client_fd) {
     }
     free(packet_buf);
     close(fd);
-    fd = open(PATHFILE, O_RDONLY);
+    fd = open(DATA_FILE, O_RDONLY);
     if (fd >= 0) {
         ssize_t bytes_read;
         char read_buf[MAXDATASIZE];
@@ -184,7 +184,10 @@ int main(int argc, char *argv[]){
         close(sock_fd);
     if (client_fd != -1)
         close(client_fd);
-    remove(PATHFILE);
+    #if !USE_AESD_CHAR_DEVICE
+    remove(DATA_FILE);
+    #endif   
     closelog();
+    return 0;
 }
 
